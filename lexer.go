@@ -54,7 +54,7 @@ type Lexer interface {
 	// MatchOneOrMore consumes a run of matching runes
 	MatchOneOrMore ([]byte) bool
 
-	// MatchNonOrOne consumes the next rune if it matches, always returning true
+	// MatchNoneOrOne consumes the next rune if it matches, always returning true
 	MatchNoneOrOne ([]byte) bool
 
 	// MatchNoneOrMore consumes a run of matching runes, always returning true
@@ -69,7 +69,7 @@ type Lexer interface {
 	// NonMatchOneOrMore consumes a run of non-matching runes
 	NonMatchOneOrMore ([]byte) bool
 
-	// NonMatchNonOrOne consumes the next rune if it does not match, always returning true
+	// NonMatchNoneOrOne consumes the next rune if it does not match, always returning true
 	NonMatchNoneOrOne ([]byte) bool
 
 	// NonMatchNoneOrMore consumes a run of non-matching runes, always returning true

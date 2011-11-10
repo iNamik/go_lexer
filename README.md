@@ -25,7 +25,7 @@ Below is the interface for the main Lexer type:
 		// MatchOneOrMore consumes a run of matching runes
 		MatchOneOrMore ([]byte) bool
 
-		// MatchNonOrOne consumes the next rune if it matches, always returning true
+		// MatchNoneOrOne consumes the next rune if it matches, always returning true
 		MatchNoneOrOne ([]byte) bool
 
 		// MatchNoneOrMore consumes a run of matching runes, always returning true
@@ -40,7 +40,7 @@ Below is the interface for the main Lexer type:
 		// NonMatchOneOrMore consumes a run of non-matching runes
 		NonMatchOneOrMore ([]byte) bool
 
-		// NonMatchNonOrOne consumes the next rune if it does not match, always returning true
+		// NonMatchNoneOrOne consumes the next rune if it does not match, always returning true
 		NonMatchNoneOrOne ([]byte) bool
 
 		// NonMatchNoneOrMore consumes a run of non-matching runes, always returning true
@@ -94,7 +94,7 @@ Below is the interface for the main Lexer type:
 EXAMPLE
 -------
 
-Below is a sample word count program that users the lexer API:
+Below is a sample word count program that uses the lexer API:
 
 	package main
 
