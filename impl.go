@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"bytes"
-	"utf8"
+	"unicode/utf8"
 )
 
 /**
@@ -11,10 +11,10 @@ import (
 func (l *lexer) NextToken() *Token {
 	for {
 		select {
-			case token := <- l.tokens:
-				return token
-			default:
-				l.state = l.state(l)
+		case token := <-l.tokens:
+			return token
+		default:
+			l.state = l.state(l)
 		}
 	}
 	panic("not reached")
@@ -45,34 +45,34 @@ func (l *lexer) Column() int {
 /**
  * Lexer:PeekRune
  */
-func (l *lexer) PeekRune(n int) int {
-	ok := l.ensureRuneLen( l.pos + n + 1 ) // Correct for 0-based 'n'
+func (l *lexer) PeekRune(n int) rune {
+	ok := l.ensureRuneLen(l.pos + n + 1) // Correct for 0-based 'n'
 
 	if !ok {
 		return RuneEOF
 	}
 
-	i := l.runes.Peek( l.pos + n )
+	i := l.runes.Peek(l.pos + n)
 
-	return i.(int)
+	return i.(rune)
 }
 
 /**
  * Lexer::NextRune
  */
-func (l *lexer) NextRune() int {
-	ok := l.ensureRuneLen( l.pos + 1 )
+func (l *lexer) NextRune() rune {
+	ok := l.ensureRuneLen(l.pos + 1)
 
 	if !ok {
 		return RuneEOF
 	}
 
-	i := l.runes.Peek( l.pos ) // 0-based
+	i := l.runes.Peek(l.pos) // 0-based
 
-	r := i.(int)
+	r := i.(rune)
 	l.pos++
 	l.tokenLen += utf8.RuneLen(r)
-	l.column   += utf8.RuneLen(r)
+	l.column += utf8.RuneLen(r)
 
 	return r
 }
@@ -88,13 +88,13 @@ func (l *lexer) BackupRune() {
  * Lexer::BackupRunes
  */
 func (l *lexer) BackupRunes(n int) {
-	for  ; n > 0 ; n-- {
+	for ; n > 0; n-- {
 		if l.pos > 0 {
 			l.pos--
-			i := l.runes.Peek( l.pos ) // 0-based
-			r := i.(int)
+			i := l.runes.Peek(l.pos) // 0-based
+			r := i.(rune)
 			l.tokenLen -= utf8.RuneLen(r)
-			l.column   -= utf8.RuneLen(r)
+			l.column -= utf8.RuneLen(r)
 		} else {
 			panic("Underflow Exception")
 		}
@@ -129,7 +129,6 @@ func (l *lexer) IgnoreToken() {
 	l.consume(false)
 }
 
-
 /**
  * Lexer::Marker
  */
@@ -141,20 +140,20 @@ func (l *lexer) Marker() *Marker {
  * Lexer::Reset
  */
 func (l *lexer) Reset(m *Marker) {
-	if (m.sequence != l.sequence || m.pos > l.runes.Len() || m.tokenLen > l.peekPos) {
+	if m.sequence != l.sequence || m.pos > l.runes.Len() || m.tokenLen > l.peekPos {
 		panic("Invalid marker")
 	}
-	l.pos      = m.pos
+	l.pos = m.pos
 	l.tokenLen = m.tokenLen
-	l.line     = m.line
-	l.column   = m.column
+	l.line = m.line
+	l.column = m.column
 }
 
 /**
  * Lexer::MatchOne
  */
 func (l *lexer) MatchOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
 		l.NextRune()
 		return true
 	}
@@ -165,10 +164,10 @@ func (l *lexer) MatchOne(match []byte) bool {
  * Lexer::MatchOneOrMore
  */
 func (l *lexer) MatchOneOrMore(match []byte) bool {
-	var r int
-	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
 		l.NextRune()
-		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 ; r = l.PeekRune(0) {
+		for r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
 			l.NextRune()
 		}
 		return true
@@ -180,7 +179,7 @@ func (l *lexer) MatchOneOrMore(match []byte) bool {
  * Lexer::MatchNoneOrOne
  */
 func (l *lexer) MatchNoneOrOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
 		l.NextRune()
 	}
 	return true
@@ -190,7 +189,7 @@ func (l *lexer) MatchNoneOrOne(match []byte) bool {
  * Lexer::MatchNoneOrMore
  */
 func (l *lexer) MatchNoneOrMore(match []byte) bool {
-	for r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 ; r = l.PeekRune(0) {
+	for r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
 		l.NextRune()
 	}
 	return true
@@ -200,7 +199,7 @@ func (l *lexer) MatchNoneOrMore(match []byte) bool {
  * Lexer::MatchEOF
  */
 func (l *lexer) MatchEOF() bool {
-	if r := l.PeekRune(0) ; r == RuneEOF {
+	if r := l.PeekRune(0); r == RuneEOF {
 		l.NextRune()
 		return true
 	}
@@ -211,7 +210,7 @@ func (l *lexer) MatchEOF() bool {
  * Lexer::NonMatchOne
  */
 func (l *lexer) NonMatchOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
 		l.NextRune()
 		return true
 	}
@@ -222,10 +221,10 @@ func (l *lexer) NonMatchOne(match []byte) bool {
  * Lexer::NonMatchOneOrMore
  */
 func (l *lexer) NonMatchOneOrMore(match []byte) bool {
-	var r int
-	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
 		l.NextRune()
-		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 ; r = l.PeekRune(0) {
+		for r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
 			l.NextRune()
 		}
 		return true
@@ -237,7 +236,7 @@ func (l *lexer) NonMatchOneOrMore(match []byte) bool {
  * Lexer::NonMatchNoneOrOne
  */
 func (l *lexer) NonMatchNoneOrOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
 		l.NextRune()
 	}
 	return true
@@ -247,7 +246,7 @@ func (l *lexer) NonMatchNoneOrOne(match []byte) bool {
  * Lexer::NonMatchNoneOrMore
  */
 func (l *lexer) NonMatchNoneOrMore(match []byte) bool {
-	for r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 ; r = l.PeekRune(0) {
+	for r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
 		l.NextRune()
 	}
 	return true
