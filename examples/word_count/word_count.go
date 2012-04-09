@@ -2,7 +2,7 @@ package main
 
 import "os"
 import "fmt"
-import "github.com/iNamik/lexer.go"
+import "github.com/iNamik/go_lexer"
 
 // Usage : wordcount <filename>
 func usage() {

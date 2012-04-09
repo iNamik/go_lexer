@@ -3,7 +3,7 @@ package lexer
 import (
 	"io"
 	"bufio"
-	"github.com/iNamik/container.go/queue"
+	"github.com/iNamik/go_container/queue"
 )
 
 // TokenType identifies the type of lex tokens.

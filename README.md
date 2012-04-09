@@ -1,4 +1,4 @@
-lexer.go
+go_lexer
 ========
 
 **Lexer API in Go**
@@ -7,7 +7,7 @@ lexer.go
 ABOUT
 -----
 
-The 'lexer.go' package is an API to help you create hand-written lexers and parsers.
+The 'go_lexer' package is an API to help you create hand-written lexers and parsers.
 
 The package was inspired by Rob Pikes' video [Lexical Scanning In Go](http://youtu.be/HxaD_trXwRE) and golang's 'template' package.
 
@@ -100,7 +100,7 @@ Below is a sample word count program that uses the lexer API:
 
 	import "os"
 	import "fmt"
-	import "github.com/iNamik/lexer.go"
+	import "github.com/iNamik/go_lexer"
 
 	// Usage : wordcount <filename>
 	func usage() {
@@ -224,22 +224,22 @@ INSTALL
 
 To install the package manually
 
-	git clone https://github.com/iNamik/lexer.go
-	cd lexer.go
+	git clone https://github.com/iNamik/go_lexer
+	cd go_lexer
 	gomake
 	gomake install
 
 Or you can install the package via goinstall
 
-	goinstall github.com/iNamik/lexer.go
+	goinstall github.com/iNamik/go_lexer
 
 
 DEPENDENCIES
 ------------
 
-lexer.go depends on the iNamik container.go queue package:
+go_lexer depends on the iNamik go_container queue package:
 
-* https://github.com/iNamik/container.go
+* https://github.com/iNamik/go_container
 
 
 AUTHORS

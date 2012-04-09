@@ -4,7 +4,7 @@ import (
 	"os"
 	"bufio"
 	"utf8"
-	"github.com/iNamik/container.go/queue"
+	"github.com/iNamik/go_container/queue"
 )
 
 // lexer holds the state of the scanner.
