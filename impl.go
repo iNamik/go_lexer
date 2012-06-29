@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"bytes"
-	"utf8"
+	"unicode/utf8"
 )
 
 /**
@@ -45,7 +45,7 @@ func (l *lexer) Column() int {
 /**
  * Lexer:PeekRune
  */
-func (l *lexer) PeekRune(n int) int {
+func (l *lexer) PeekRune(n int) rune {
 	ok := l.ensureRuneLen( l.pos + n + 1 ) // Correct for 0-based 'n'
 
 	if !ok {
@@ -54,13 +54,13 @@ func (l *lexer) PeekRune(n int) int {
 
 	i := l.runes.Peek( l.pos + n )
 
-	return i.(int)
+	return i.(rune)
 }
 
 /**
  * Lexer::NextRune
  */
-func (l *lexer) NextRune() int {
+func (l *lexer) NextRune() rune {
 	ok := l.ensureRuneLen( l.pos + 1 )
 
 	if !ok {
@@ -69,7 +69,7 @@ func (l *lexer) NextRune() int {
 
 	i := l.runes.Peek( l.pos ) // 0-based
 
-	r := i.(int)
+	r := i.(rune)
 	l.pos++
 	l.tokenLen += utf8.RuneLen(r)
 	l.column   += utf8.RuneLen(r)
@@ -92,7 +92,7 @@ func (l *lexer) BackupRunes(n int) {
 		if l.pos > 0 {
 			l.pos--
 			i := l.runes.Peek( l.pos ) // 0-based
-			r := i.(int)
+			r := i.(rune)
 			l.tokenLen -= utf8.RuneLen(r)
 			l.column   -= utf8.RuneLen(r)
 		} else {
@@ -165,7 +165,7 @@ func (l *lexer) MatchOne(match []byte) bool {
  * Lexer::MatchOneOrMore
  */
 func (l *lexer) MatchOneOrMore(match []byte) bool {
-	var r int
+	var r rune
 	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
 		l.NextRune()
 		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 ; r = l.PeekRune(0) {
@@ -222,7 +222,7 @@ func (l *lexer) NonMatchOne(match []byte) bool {
  * Lexer::NonMatchOneOrMore
  */
 func (l *lexer) NonMatchOneOrMore(match []byte) bool {
-	var r int
+	var r rune
 	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
 		l.NextRune()
 		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 ; r = l.PeekRune(0) {
