@@ -1,9 +1,9 @@
 package lexer
 
 import (
-	"os"
+    "io"
 	"bufio"
-	"utf8"
+	"unicode/utf8"
 	"github.com/iNamik/go_container/queue"
 )
 
@@ -60,14 +60,14 @@ func (l *lexer) consume(keepBytes bool) []byte {
 		b = make([]byte, l.tokenLen)
 		n, err := l.reader.Read( b )
 		if err != nil || n != l.tokenLen {
-			panic("Unexpected problem in bufio.Reader.Read(): " + err.String())
+			panic("Unexpected problem in bufio.Reader.Read(): " + err.Error())
 		}
 	} else {
 		// May be better to just grab string and ignore, or always emit bytes
 		for ; l.tokenLen > 0 ; l.tokenLen-- {
 			_, err := l.reader.ReadByte()
 			if err != nil {
-				panic("Unexpected problem in bufio.Reader.ReadByte(): " + err.String())
+				panic("Unexpected problem in bufio.Reader.ReadByte(): " + err.Error())
 			}
 		}
 		b = nil
@@ -83,9 +83,9 @@ func (l *lexer) consume(keepBytes bool) []byte {
 }
 
 func (l *lexer) updatePeekBytes() {
-	var err os.Error
+	var err error
 	l.peekBytes, err = l.reader.Peek(l.bufLen)
-	if err != nil && err != bufio.ErrBufferFull && err != os.EOF {
+	if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
 		panic(err)
 	}
 }
