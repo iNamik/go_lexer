@@ -1,9 +1,11 @@
 package lexer
 
 import (
-	"os"
 	"bufio"
-	"utf8"
+	"io"
+	"unicode/utf8"
+)
+import (
 	"github.com/iNamik/go_container/queue"
 )
 
@@ -40,7 +42,7 @@ func (l *lexer) ensureRuneLen(n int) bool {
 }
 
 func (l *lexer) emit(t TokenType, emitBytes bool) {
-	if (TokenTypeEOF == t) {
+	if TokenTypeEOF == t {
 		if l.eof { panic("illegal state: EmitEOF() already called") }
 		l.consume(false)
 		l.eofToken = &Token{typ: TokenTypeEOF, bytes: nil, line: l.line, column: l.column + 1}
@@ -56,18 +58,18 @@ func (l *lexer) emit(t TokenType, emitBytes bool) {
 
 func (l *lexer) consume(keepBytes bool) []byte {
 	var b []byte
-	if (keepBytes) {
+	if keepBytes {
 		b = make([]byte, l.tokenLen)
 		n, err := l.reader.Read( b )
 		if err != nil || n != l.tokenLen {
-			panic("Unexpected problem in bufio.Reader.Read(): " + err.String())
+			panic("Unexpected problem in bufio.Reader.Read(): " + err.Error())
 		}
 	} else {
 		// May be better to just grab string and ignore, or always emit bytes
 		for ; l.tokenLen > 0 ; l.tokenLen-- {
 			_, err := l.reader.ReadByte()
 			if err != nil {
-				panic("Unexpected problem in bufio.Reader.ReadByte(): " + err.String())
+				panic("Unexpected problem in bufio.Reader.ReadByte(): " + err.Error())
 			}
 		}
 		b = nil
@@ -83,9 +85,9 @@ func (l *lexer) consume(keepBytes bool) []byte {
 }
 
 func (l *lexer) updatePeekBytes() {
-	var err os.Error
+	var err error
 	l.peekBytes, err = l.reader.Peek(l.bufLen)
-	if err != nil && err != bufio.ErrBufferFull && err != os.EOF {
+	if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
 		panic(err)
 	}
 }

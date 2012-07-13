@@ -47,10 +47,10 @@ Below is the interface for the main Lexer type:
 		NonMatchNoneOrMore([]byte) bool
 
 		// PeekRune allows you to look ahead at runes without consuming them
-		PeekRune (int) int
+		PeekRune (int) rune
 
 		// NetRune consumes and returns the next rune in the input
-		NextRune ()    int
+		NextRune ()    rune
 
 		// BackupRune un-conumes the last rune from the input
 		BackupRune ()
@@ -128,11 +128,11 @@ Below is a sample word count program that uses the lexer API:
 		}
 
 		var file *os.File
-		var error os.Error
+		var error error
 
 		file, error = os.Open(os.Args[1])
 
-		if (error != nil) {
+		if error != nil {
 			panic(error)
 		}
 
@@ -190,11 +190,11 @@ Below is a sample word count program that uses the lexer API:
 		}
 
 		// Non-Space run
-		if (l.NonMatchOneOrMore(rangeNonWord)) {
+		if l.NonMatchOneOrMore(rangeNonWord) {
 			l.EmitTokenWithBytes(T_WORD)
 
 		// Space run
-		} else if (l.MatchOneOrMore(rangeSpace)) {
+		} else if l.MatchOneOrMore(rangeSpace) {
 			l.EmitTokenWithBytes(T_SPACE)
 
 		// Line Feed

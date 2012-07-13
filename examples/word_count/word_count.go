@@ -30,11 +30,11 @@ func main() {
 	}
 
 	var file *os.File
-	var error os.Error
+	var error error
 
 	file, error = os.Open(os.Args[1])
 
-	if (error != nil) {
+	if error != nil {
 		panic(error)
 	}
 
@@ -92,11 +92,11 @@ func lexFunc(l lexer.Lexer) lexer.StateFn {
 	}
 
 	// Non-Space run
-	if (l.NonMatchOneOrMore(rangeNonWord)) {
+	if l.NonMatchOneOrMore(rangeNonWord) {
 		l.EmitTokenWithBytes(T_WORD)
 
 	// Space run
-	} else if (l.MatchOneOrMore(rangeSpace)) {
+	} else if l.MatchOneOrMore(rangeSpace) {
 		l.EmitTokenWithBytes(T_SPACE)
 
 	// Line Feed

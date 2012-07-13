@@ -76,10 +76,10 @@ type Lexer interface {
 	NonMatchNoneOrMore([]byte) bool
 
 	// PeekRune allows you to look ahead at runes without consuming them
-	PeekRune (int) int
+	PeekRune (int) rune
 
 	// NetRune consumes and returns the next rune in the input
-	NextRune ()    int
+	NextRune ()    rune
 
 	// BackupRune un-conumes the last rune from the input
 	BackupRune ()
@@ -121,10 +121,7 @@ type Lexer interface {
 
 // NewLexer returns a new Lexer object
 func NewLexer(startState StateFn, reader io.Reader, readerBufLen int, channelCap int) Lexer {
-	r, err := bufio.NewReaderSize(reader, readerBufLen)
-	if err != nil {
-		panic(err)
-	}
+	r := bufio.NewReaderSize(reader, readerBufLen)
 	l := &lexer{
 		reader   : r,
 		bufLen   : readerBufLen,
