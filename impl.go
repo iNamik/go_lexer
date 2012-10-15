@@ -5,170 +5,209 @@ import (
 	"unicode/utf8"
 )
 
-/**
- * Lexer::NextToken - Returns the next token from the reader.
- */
+// Lexer::NextToken - Returns the next token from the reader.
 func (l *lexer) NextToken() *Token {
 	for {
 		select {
-			case token := <- l.tokens:
-				return token
-			default:
-				l.state = l.state(l)
+		case token := <-l.tokens:
+			return token
+		default:
+			l.state = l.state(l)
 		}
 	}
 	panic("not reached")
 }
 
-/**
- * Lexer::NewLine
- */
+// Lexer::NewLine
 func (l *lexer) NewLine() {
 	l.line++
 	l.column = 0
 }
 
-/**
- * Lexer::Line
- */
+// Lexer::Line
 func (l *lexer) Line() int {
 	return l.line
 }
 
-/**
- * Lexer::Column
- */
+// Lexer::Column
 func (l *lexer) Column() int {
 	return l.column
 }
 
-/**
- * Lexer:PeekRune
- */
+// Lexer:PeekRune
 func (l *lexer) PeekRune(n int) rune {
-	ok := l.ensureRuneLen( l.pos + n + 1 ) // Correct for 0-based 'n'
+	ok := l.ensureRuneLen(l.pos + n + 1) // Correct for 0-based 'n'
 
 	if !ok {
 		return RuneEOF
 	}
 
-	i := l.runes.Peek( l.pos + n )
+	i := l.runes.Peek(l.pos + n)
 
 	return i.(rune)
 }
 
-/**
- * Lexer::NextRune
- */
+// Lexer::NextRune
 func (l *lexer) NextRune() rune {
-	ok := l.ensureRuneLen( l.pos + 1 )
+	ok := l.ensureRuneLen(l.pos + 1)
 
 	if !ok {
 		return RuneEOF
 	}
 
-	i := l.runes.Peek( l.pos ) // 0-based
+	i := l.runes.Peek(l.pos) // 0-based
 
 	r := i.(rune)
+
 	l.pos++
+
 	l.tokenLen += utf8.RuneLen(r)
-	l.column   += utf8.RuneLen(r)
+
+	l.column += utf8.RuneLen(r)
 
 	return r
 }
 
-/**
- * Lexer::BackupRune
- */
+// Lexer::BackupRune
 func (l *lexer) BackupRune() {
 	l.BackupRunes(1)
 }
 
-/**
- * Lexer::BackupRunes
- */
+// Lexer::BackupRunes
 func (l *lexer) BackupRunes(n int) {
-	for  ; n > 0 ; n-- {
+	for ; n > 0; n-- {
 		if l.pos > 0 {
 			l.pos--
-			i := l.runes.Peek( l.pos ) // 0-based
+
+			i := l.runes.Peek(l.pos) // 0-based
 			r := i.(rune)
+
 			l.tokenLen -= utf8.RuneLen(r)
-			l.column   -= utf8.RuneLen(r)
+
+			l.column -= utf8.RuneLen(r)
 		} else {
 			panic("Underflow Exception")
 		}
 	}
 }
 
-/**
- * Lexer::EmitToken
- */
+// Lexer::EmitToken
 func (l *lexer) EmitToken(t TokenType) {
 	l.emit(t, false)
 }
 
-/**
- * Lexer::EmitTokenWithBytes
- */
+// Lexer::EmitTokenWithBytes
 func (l *lexer) EmitTokenWithBytes(t TokenType) {
 	l.emit(t, true)
 }
 
-/**
- * Lexer::EmitToken
- */
+// Lexer::EmitToken
 func (l *lexer) EmitEOF() {
 	l.emit(TokenTypeEOF, false)
 }
 
-/**
- * Lexer::IgnoreToken
- */
+// Lexer::IgnoreToken
 func (l *lexer) IgnoreToken() {
 	l.consume(false)
 }
 
-
-/**
- * Lexer::Marker
- */
+// Lexer::Marker
 func (l *lexer) Marker() *Marker {
 	return &Marker{sequence: l.sequence, pos: l.pos, tokenLen: l.tokenLen, line: l.line, column: l.column}
 }
 
-/**
- * Lexer::Reset
- */
+// Lexer::CanReset
+func (l *lexer) CanReset(m *Marker) bool {
+	return m.sequence == l.sequence && m.pos <= l.runes.Len() && m.tokenLen <= l.peekPos
+}
+
+// Lexer::Reset
 func (l *lexer) Reset(m *Marker) {
-	if m.sequence != l.sequence || m.pos > l.runes.Len() || m.tokenLen > l.peekPos {
+	if l.CanReset(m) == false {
 		panic("Invalid marker")
 	}
-	l.pos      = m.pos
+	l.pos = m.pos
+
 	l.tokenLen = m.tokenLen
-	l.line     = m.line
-	l.column   = m.column
+
+	l.line = m.line
+
+	l.column = m.column
 }
 
-/**
- * Lexer::MatchOne
- */
-func (l *lexer) MatchOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+// Lexer::MatchZeroOrOneBytes
+func (l *lexer) MatchZeroOrOneBytes(match []byte) bool {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrOneRunes
+func (l *lexer) MatchZeroOrOneRunes(match []rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrOneRune
+func (l *lexer) MatchZeroOrOneRune(match rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && r == match {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrMoreBytes
+func (l *lexer) MatchZeroOrMoreBytes(match []byte) bool {
+	for r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrMoreRunes
+func (l *lexer) MatchZeroOrMoreRunes(match []rune) bool {
+	for r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r); r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchOneBytes
+func (l *lexer) MatchOneBytes(match []byte) bool {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
 		l.NextRune()
 		return true
 	}
 	return false
 }
 
-/**
- * Lexer::MatchOneOrMore
- */
-func (l *lexer) MatchOneOrMore(match []byte) bool {
-	var r rune
-	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+// Lexer::MatchOneRunes
+func (l *lexer) MatchOneRunes(match []rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
 		l.NextRune()
-		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 ; r = l.PeekRune(0) {
+		return true
+	}
+	return false
+}
+
+// Lexer::MatchOneRune
+func (l *lexer) MatchOneRune(match rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && r == match {
+		l.NextRune()
+		return true
+	}
+	return false
+}
+
+// Lexer::MatchOneOrMoreBytes
+func (l *lexer) MatchOneOrMoreBytes(match []byte) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0 {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
 			l.NextRune()
 		}
 		return true
@@ -176,79 +215,100 @@ func (l *lexer) MatchOneOrMore(match []byte) bool {
 	return false
 }
 
-/**
- * Lexer::MatchNoneOrOne
- */
-func (l *lexer) MatchNoneOrOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 {
+// Lexer::MatchOneOrMoreRunes
+func (l *lexer) MatchOneOrMoreRunes(match []rune) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r); r = l.PeekRune(0) {
+			l.NextRune()
+		}
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneBytes
+func (l *lexer) NonMatchOneBytes(match []byte) bool {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
+		l.NextRune()
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneRunes
+func (l *lexer) NonMatchOneRunes(match []rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
+		l.NextRune()
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneOrMoreBytes
+func (l *lexer) NonMatchOneOrMoreBytes(match []byte) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
+			l.NextRune()
+		}
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneOrMoreRunes
+func (l *lexer) NonMatchOneOrMoreRunes(match []rune) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false; r = l.PeekRune(0) {
+			l.NextRune()
+		}
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchZeroOrOneBytes
+func (l *lexer) NonMatchZeroOrOneBytes(match []byte) bool {
+	if r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1 {
 		l.NextRune()
 	}
 	return true
 }
 
-/**
- * Lexer::MatchNoneOrMore
- */
-func (l *lexer) MatchNoneOrMore(match []byte) bool {
-	for r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) >= 0 ; r = l.PeekRune(0) {
+// Lexer::NonMatchZeroOrOneRunes
+func (l *lexer) NonMatchZeroOrOneRunes(match []rune) bool {
+	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
 		l.NextRune()
 	}
 	return true
 }
 
-/**
- * Lexer::MatchEOF
- */
+// Lexer::NonMatchZeroOrMoreBytes
+func (l *lexer) NonMatchZeroOrMoreBytes(match []byte) bool {
+	for r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::NonMatchZeroOrMoreRunes
+func (l *lexer) NonMatchZeroOrMoreRunes(match []rune) bool {
+	for r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false; r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchEOF
 func (l *lexer) MatchEOF() bool {
-	if r := l.PeekRune(0) ; r == RuneEOF {
+	if r := l.PeekRune(0); r == RuneEOF {
 		l.NextRune()
 		return true
 	}
 	return false
-}
-
-/**
- * Lexer::NonMatchOne
- */
-func (l *lexer) NonMatchOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
-		l.NextRune()
-		return true
-	}
-	return false
-}
-
-/**
- * Lexer::NonMatchOneOrMore
- */
-func (l *lexer) NonMatchOneOrMore(match []byte) bool {
-	var r rune
-	if r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
-		l.NextRune()
-		for r = l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 ; r = l.PeekRune(0) {
-			l.NextRune()
-		}
-		return true
-	}
-	return false
-}
-
-/**
- * Lexer::NonMatchNoneOrOne
- */
-func (l *lexer) NonMatchNoneOrOne(match []byte) bool {
-	if r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 {
-		l.NextRune()
-	}
-	return true
-}
-
-/**
- * Lexer::NonMatchNoneOrMore
- */
-func (l *lexer) NonMatchNoneOrMore(match []byte) bool {
-	for r := l.PeekRune(0) ; r != RuneEOF && bytes.IndexRune( match, r ) == -1 ; r = l.PeekRune(0) {
-		l.NextRune()
-	}
-	return true
 }

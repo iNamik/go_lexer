@@ -19,41 +19,14 @@ Below is the interface for the main Lexer type:
 	// lexer.Lexer helps you tokenize bytes
 	type Lexer interface {
 
-		// MatchOne consumes the next rune if its in the list of bytes
-		MatchOne       ([]byte) bool
-
-		// MatchOneOrMore consumes a run of matching runes
-		MatchOneOrMore ([]byte) bool
-
-		// MatchNoneOrOne consumes the next rune if it matches, always returning true
-		MatchNoneOrOne ([]byte) bool
-
-		// MatchNoneOrMore consumes a run of matching runes, always returning true
-		MatchNoneOrMore([]byte) bool
-
-		// MatchEOF tries to match the next rune against RuneEOF
-		MatchEOF()              bool
-
-		// NonMatchOne consumes the next rune if its NOT in the list of bytes
-		NonMatchOne       ([]byte) bool
-
-		// NonMatchOneOrMore consumes a run of non-matching runes
-		NonMatchOneOrMore ([]byte) bool
-
-		// NonMatchNoneOrOne consumes the next rune if it does not match, always returning true
-		NonMatchNoneOrOne ([]byte) bool
-
-		// NonMatchNoneOrMore consumes a run of non-matching runes, always returning true
-		NonMatchNoneOrMore([]byte) bool
-
 		// PeekRune allows you to look ahead at runes without consuming them
-		PeekRune (int) rune
+		PeekRune(int) rune
 
 		// NetRune consumes and returns the next rune in the input
-		NextRune ()    rune
+		NextRune() rune
 
 		// BackupRune un-conumes the last rune from the input
-		BackupRune ()
+		BackupRune()
 
 		// BackupRunes un-consumes the last n runes from the input
 		BackupRunes(int)
@@ -62,14 +35,14 @@ Below is the interface for the main Lexer type:
 		NewLine()
 
 		// Line returns the current line number, 1-based
-		Line()    int
+		Line() int
 
 		// Column returns the current column number, 1-based
-		Column()  int
+		Column() int
 
 		// EmitToken emits a token of the specified type, consuming matched runes
 		// without emitting them
-		EmitToken         (TokenType)
+		EmitToken(TokenType)
 
 		// EmitTokenWithBytes emits a token along with all the consumed runes
 		EmitTokenWithBytes(TokenType)
@@ -81,13 +54,73 @@ Below is the interface for the main Lexer type:
 		EmitEOF()
 
 		// NextToken retrieves the next emmitted token from the input
-		NextToken  () *Token
+		NextToken() *Token
 
 		// Marker returns a marker that you can use to reset the lexer state later
 		Marker() *Marker
 
+		// CanReset confirms if the marker is still valid
+		CanReset(*Marker) bool
+
 		// Reset resets the lexer state to the specified marker
 		Reset(*Marker)
+
+		// MatchZeroOrOneBytes consumes the next rune if it matches, always returning true
+		MatchZeroOrOneBytes([]byte) bool
+
+		// MatchZeroOrOneRuness consumes the next rune if it matches, always returning true
+		MatchZeroOrOneRunes([]rune) bool
+
+		// MatchZeroOrOneRune consumes the next rune if it matches, always returning true
+		MatchZeroOrOneRune(rune) bool
+
+		// MatchZeroOrMoreBytes consumes a run of matching runes, always returning true
+		MatchZeroOrMoreBytes([]byte) bool
+
+		// MatchZeroOrMoreRunes consumes a run of matching runes, always returning true
+		MatchZeroOrMoreRunes([]rune) bool
+
+		// MatchOneBytes consumes the next rune if its in the list of bytes
+		MatchOneBytes([]byte) bool
+
+		// MatchOneRune consumes the next rune if its in the list of bytes
+		MatchOneRunes([]rune) bool
+
+		// MatchOneRune consumes the next rune if it matches
+		MatchOneRune(rune) bool
+
+		// MatchOneOrMoreBytes consumes a run of matching runes
+		MatchOneOrMoreBytes([]byte) bool
+
+		// MatchOneOrMoreRunes consumes a run of matching runes
+		MatchOneOrMoreRunes([]rune) bool
+
+		// NonMatchZeroOrOneBytes consumes the next rune if it does not match, always returning true
+		NonMatchZeroOrOneBytes([]byte) bool
+
+		// NonMatchZeroOrOneRunes consumes the next rune if it does not match, always returning true
+		NonMatchZeroOrOneRunes([]rune) bool
+
+		// NonMatchZeroOrMoreBytes consumes a run of non-matching runes, always returning true
+		NonMatchZeroOrMoreBytes([]byte) bool
+
+		// NonMatchZeroOrMoreRunes consumes a run of non-matching runes, always returning true
+		NonMatchZeroOrMoreRunes([]rune) bool
+
+		// NonMatchOneBytes consumes the next rune if its NOT in the list of bytes
+		NonMatchOneBytes([]byte) bool
+
+		// NonMatchOneRunes consumes the next rune if its NOT in the list of bytes
+		NonMatchOneRunes([]rune) bool
+
+		// NonMatchOneOrMoreBytes consumes a run of non-matching runes
+		NonMatchOneOrMoreBytes([]byte) bool
+
+		// NonMatchOneOrMoreRunes consumes a run of non-matching runes
+		NonMatchOneOrMoreRunes([]rune) bool
+
+		// MatchEOF tries to match the next rune against RuneEOF
+		MatchEOF() bool
 	}
 
 
@@ -116,10 +149,13 @@ Below is a sample word count program that uses the lexer API:
 	)
 
 	// List gleaned from isspace(3) manpage
-	var   rangeNonWord = []byte { ' ', '\t', '\f', '\v', '\n', '\r' }
-	var   rangeSpace   = []byte { ' ', '\t', '\f', '\v' }
-	const charNewLine  = '\n'
-	const charReturn   = '\r'
+	var bytesNonWord = []byte{' ', '\t', '\f', '\v', '\n', '\r'}
+
+	var bytesSpace = []byte{' ', '\t', '\f', '\v'}
+
+	const charNewLine = '\n'
+
+	const charReturn = '\r'
 
 	func main() {
 		if len(os.Args) < 2 {
@@ -136,39 +172,42 @@ Below is a sample word count program that uses the lexer API:
 			panic(error)
 		}
 
-		var chars  int = 0
-		var words  int = 0
+		var chars int = 0
+
+		var words int = 0
+
 		var spaces int = 0
-		var lines  int = 0
+
+		var lines int = 0
 
 		// To help us track last line
 		var emptyLine bool = true
 
 		// Create our lexer
-		// NewLexer(startState, reader, readerBufLen, channelCap)
-		lex := lexer.NewLexer(lexFunc, file, 100, 1)
+		// New(startState, reader, readerBufLen, channelCap)
+		lex := lexer.New(lexFunc, file, 100, 1)
 
 		// Process lexer-emitted tokens
-		for t := lex.NextToken() ; lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
+		for t := lex.NextToken(); lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
 
 			chars += len(t.Bytes())
 
 			switch t.Type() {
-				case T_WORD :
-					words++
-					emptyLine = false
+			case T_WORD:
+				words++
+				emptyLine = false
 
-				case T_NEWLINE :
-					lines++
-					spaces++
-					emptyLine = true
+			case T_NEWLINE:
+				lines++
+				spaces++
+				emptyLine = true
 
-				case T_SPACE :
-					spaces += len(t.Bytes())
-					emptyLine = false
+			case T_SPACE:
+				spaces += len(t.Bytes())
+				emptyLine = false
 
-				default:
-					panic("unreachable")
+			default:
+				panic("unreachable")
 			}
 		}
 
@@ -178,11 +217,9 @@ Below is a sample word count program that uses the lexer API:
 		}
 
 		fmt.Printf("%d words, %d spaces, %d lines, %d chars\n", words, spaces, lines, chars)
-
 	}
 
 	func lexFunc(l lexer.Lexer) lexer.StateFn {
-
 		// EOF
 		if l.MatchEOF() {
 			l.EmitEOF()
@@ -190,20 +227,20 @@ Below is a sample word count program that uses the lexer API:
 		}
 
 		// Non-Space run
-		if l.NonMatchOneOrMore(rangeNonWord) {
+		if l.NonMatchOneOrMoreBytes(bytesNonWord) {
 			l.EmitTokenWithBytes(T_WORD)
 
-		// Space run
-		} else if l.MatchOneOrMore(rangeSpace) {
+			// Space run
+		} else if l.MatchOneOrMoreBytes(bytesSpace) {
 			l.EmitTokenWithBytes(T_SPACE)
 
-		// Line Feed
+			// Line Feed
 		} else if charNewLine == l.PeekRune(0) {
 			l.NextRune()
 			l.EmitTokenWithBytes(T_NEWLINE)
 			l.NewLine()
 
-		// Carriage-Return with optional line-feed immediately following
+			// Carriage-Return with optional line-feed immediately following
 		} else if charReturn == l.PeekRune(0) {
 			l.NextRune()
 			if charNewLine == l.PeekRune(0) {
@@ -222,16 +259,10 @@ Below is a sample word count program that uses the lexer API:
 INSTALL
 -------
 
-To install the package manually
+The package is built using the Go tool.  Assuming you have correctly set the
+$GOPATH variable, you can run the folloing command:
 
-	git clone https://github.com/iNamik/go_lexer
-	cd go_lexer
-	gomake
-	gomake install
-
-Or you can install the package via goinstall
-
-	goinstall github.com/iNamik/go_lexer
+	go get github.com/iNamik/go_lexer
 
 
 DEPENDENCIES
@@ -246,4 +277,3 @@ AUTHORS
 -------
 
  * David Farrell
-

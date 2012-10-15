@@ -18,10 +18,13 @@ const (
 )
 
 // List gleaned from isspace(3) manpage
-var   rangeNonWord = []byte { ' ', '\t', '\f', '\v', '\n', '\r' }
-var   rangeSpace   = []byte { ' ', '\t', '\f', '\v' }
-const charNewLine  = '\n'
-const charReturn   = '\r'
+var bytesNonWord = []byte{' ', '\t', '\f', '\v', '\n', '\r'}
+
+var bytesSpace = []byte{' ', '\t', '\f', '\v'}
+
+const charNewLine = '\n'
+
+const charReturn = '\r'
 
 func main() {
 	if len(os.Args) < 2 {
@@ -38,39 +41,42 @@ func main() {
 		panic(error)
 	}
 
-	var chars  int = 0
-	var words  int = 0
+	var chars int = 0
+
+	var words int = 0
+
 	var spaces int = 0
-	var lines  int = 0
+
+	var lines int = 0
 
 	// To help us track last line
 	var emptyLine bool = true
 
 	// Create our lexer
-	// NewLexer(startState, reader, readerBufLen, channelCap)
-	lex := lexer.NewLexer(lexFunc, file, 100, 1)
+	// New(startState, reader, readerBufLen, channelCap)
+	lex := lexer.New(lexFunc, file, 100, 1)
 
 	// Process lexer-emitted tokens
-	for t := lex.NextToken() ; lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
+	for t := lex.NextToken(); lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
 
 		chars += len(t.Bytes())
 
 		switch t.Type() {
-			case T_WORD :
-				words++
-				emptyLine = false
+		case T_WORD:
+			words++
+			emptyLine = false
 
-			case T_NEWLINE :
-				lines++
-				spaces++
-				emptyLine = true
+		case T_NEWLINE:
+			lines++
+			spaces++
+			emptyLine = true
 
-			case T_SPACE :
-				spaces += len(t.Bytes())
-				emptyLine = false
+		case T_SPACE:
+			spaces += len(t.Bytes())
+			emptyLine = false
 
-			default:
-				panic("unreachable")
+		default:
+			panic("unreachable")
 		}
 	}
 
@@ -80,11 +86,9 @@ func main() {
 	}
 
 	fmt.Printf("%d words, %d spaces, %d lines, %d chars\n", words, spaces, lines, chars)
-
 }
 
 func lexFunc(l lexer.Lexer) lexer.StateFn {
-
 	// EOF
 	if l.MatchEOF() {
 		l.EmitEOF()
@@ -92,20 +96,20 @@ func lexFunc(l lexer.Lexer) lexer.StateFn {
 	}
 
 	// Non-Space run
-	if l.NonMatchOneOrMore(rangeNonWord) {
+	if l.NonMatchOneOrMoreBytes(bytesNonWord) {
 		l.EmitTokenWithBytes(T_WORD)
 
-	// Space run
-	} else if l.MatchOneOrMore(rangeSpace) {
+		// Space run
+	} else if l.MatchOneOrMoreBytes(bytesSpace) {
 		l.EmitTokenWithBytes(T_SPACE)
 
-	// Line Feed
+		// Line Feed
 	} else if charNewLine == l.PeekRune(0) {
 		l.NextRune()
 		l.EmitTokenWithBytes(T_NEWLINE)
 		l.NewLine()
 
-	// Carriage-Return with optional line-feed immediately following
+		// Carriage-Return with optional line-feed immediately following
 	} else if charReturn == l.PeekRune(0) {
 		l.NextRune()
 		if charNewLine == l.PeekRune(0) {
@@ -119,4 +123,3 @@ func lexFunc(l lexer.Lexer) lexer.StateFn {
 
 	return lexFunc
 }
-
