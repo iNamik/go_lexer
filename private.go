@@ -11,26 +11,40 @@ import (
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	reader    *bufio.Reader // reader buffer
-	bufLen    int           // reader buffer len
-	line      int           // current line in steram
-	column    int           // current column within current line
-	peekBytes []byte        // cache of bufio.Reader.Peek()
-	peekPos   int
-	tokenLen  int
-	runes     queue.Interface // rune buffer
-	pos       int
-	sequence  int         // Incremented after each emit/ignore - used to validate markers
-	state     StateFn     // the next lexing function to enter
-	tokens    chan *Token // channel of scanned tokens.
-	eofToken  *Token
-	eof       bool
+	reader      *bufio.Reader // reader buffer
+	bufLen      int           // reader buffer len
+	startBufLen int           // reader buffer len at start
+	line        int           // current line in steram
+	column      int           // current column within current line
+	peekBytes   []byte        // cache of bufio.Reader.Peek()
+	peekPos     int
+	tokenLen    int
+	runes       queue.Interface // rune buffer
+	pos         int
+	sequence    int         // Incremented after each emit/ignore - used to validate markers
+	state       StateFn     // the next lexing function to enter
+	tokens      chan *Token // channel of scanned tokens.
+	eofToken    *Token
+	eof         bool
 }
 
 // ensureRuneLen
 func (l *lexer) ensureRuneLen(n int) bool {
 	for l.runes.Len() < n {
+		// check if the buffer is empty
+		if l.peekPos >= l.bufLen {
+			l.increaseBufferSize()
+			continue
+		}
+
 		rune, size := utf8.DecodeRune(l.peekBytes[l.peekPos:])
+
+		// check if rune decode failed, try to replace with larger buffer if so
+		if rune == utf8.RuneError && l.peekPos+size >= l.bufLen {
+			l.increaseBufferSize()
+			continue
+		}
+
 		if utf8.RuneError == rune {
 			return false
 		}
@@ -94,6 +108,13 @@ func (l *lexer) consume(keepBytes bool) []byte {
 	l.updatePeekBytes()
 
 	return b
+}
+
+// replace current reader with a new reader with buffer size increased by startBufLen
+func (l *lexer) increaseBufferSize() {
+	l.bufLen += l.startBufLen
+	l.reader = bufio.NewReaderSize(l.reader, l.bufLen)
+	l.updatePeekBytes()
 }
 
 // updatePeekBytes

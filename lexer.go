@@ -172,6 +172,7 @@ func New(startState StateFn, reader io.Reader, readerBufLen int, channelCap int)
 	l := &lexer{
 		reader:   r,
 		bufLen:   readerBufLen,
+		startBufLen: readerBufLen,
 		runes:    queue.New(4), // 4 is just a nice number that seems appropriate
 		state:    startState,
 		tokens:   make(chan *Token, channelCap),
