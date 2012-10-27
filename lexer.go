@@ -65,10 +65,10 @@ type Lexer interface {
 	// PeekRune allows you to look ahead at runes without consuming them
 	PeekRune(int) rune
 
-	// NetRune consumes and returns the next rune in the input
+	// NextRune consumes and returns the next rune in the input
 	NextRune() rune
 
-	// BackupRune un-conumes the last rune from the input
+	// BackupRune un-consumes the last rune from the input
 	BackupRune()
 
 	// BackupRunes un-consumes the last n runes from the input
@@ -96,7 +96,7 @@ type Lexer interface {
 	// EmitEOF emits a token of type TokenEOF
 	EmitEOF()
 
-	// NextToken retrieves the next emmitted token from the input
+	// NextToken retrieves the next emitted token from the input
 	NextToken() *Token
 
 	// Marker returns a marker that you can use to reset the lexer state later
