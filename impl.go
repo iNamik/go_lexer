@@ -5,6 +5,10 @@ import (
 	"unicode/utf8"
 )
 
+import (
+	"github.com/iNamik/go_pkg/runes"
+)
+
 // Lexer::NextToken - Returns the next token from the reader.
 func (l *lexer) NextToken() *Token {
 	for {
@@ -145,7 +149,7 @@ func (l *lexer) MatchZeroOrOneBytes(match []byte) bool {
 
 // Lexer::MatchZeroOrOneRunes
 func (l *lexer) MatchZeroOrOneRunes(match []rune) bool {
-	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
+	if r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0 {
 		l.NextRune()
 	}
 	return true
@@ -154,6 +158,14 @@ func (l *lexer) MatchZeroOrOneRunes(match []rune) bool {
 // Lexer::MatchZeroOrOneRune
 func (l *lexer) MatchZeroOrOneRune(match rune) bool {
 	if r := l.PeekRune(0); r != RuneEOF && r == match {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrOneFunc
+func (l *lexer) MatchZeroOrOneFunc(match MatchFn) bool {
+	if r := l.PeekRune(0); r != RuneEOF && match(r) {
 		l.NextRune()
 	}
 	return true
@@ -169,7 +181,15 @@ func (l *lexer) MatchZeroOrMoreBytes(match []byte) bool {
 
 // Lexer::MatchZeroOrMoreRunes
 func (l *lexer) MatchZeroOrMoreRunes(match []rune) bool {
-	for r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r); r = l.PeekRune(0) {
+	for r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::MatchZeroOrMoreFunc
+func (l *lexer) MatchZeroOrMoreFunc(match MatchFn) bool {
+	for r := l.PeekRune(0); r != RuneEOF && match(r); r = l.PeekRune(0) {
 		l.NextRune()
 	}
 	return true
@@ -186,7 +206,7 @@ func (l *lexer) MatchOneBytes(match []byte) bool {
 
 // Lexer::MatchOneRunes
 func (l *lexer) MatchOneRunes(match []rune) bool {
-	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
+	if r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0 {
 		l.NextRune()
 		return true
 	}
@@ -196,6 +216,15 @@ func (l *lexer) MatchOneRunes(match []rune) bool {
 // Lexer::MatchOneRune
 func (l *lexer) MatchOneRune(match rune) bool {
 	if r := l.PeekRune(0); r != RuneEOF && r == match {
+		l.NextRune()
+		return true
+	}
+	return false
+}
+
+// Lexer::MatchOneFunc
+func (l *lexer) MatchOneFunc(match MatchFn) bool {
+	if r := l.PeekRune(0); r != RuneEOF && match(r) {
 		l.NextRune()
 		return true
 	}
@@ -218,14 +247,81 @@ func (l *lexer) MatchOneOrMoreBytes(match []byte) bool {
 // Lexer::MatchOneOrMoreRunes
 func (l *lexer) MatchOneOrMoreRunes(match []rune) bool {
 	var r rune
-	if r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) {
+	if r = l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0 {
 		l.NextRune()
-		for r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r); r = l.PeekRune(0) {
+		for r = l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
 			l.NextRune()
 		}
 		return true
 	}
 	return false
+}
+
+// Lexer::MatchOneOrMoreFunc
+func (l *lexer) MatchOneOrMoreFunc(match MatchFn) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && match(r) {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && match(r); r = l.PeekRune(0) {
+			l.NextRune()
+		}
+		return true
+	}
+	return false
+}
+
+// Lexer::MatchMinMaxBytes
+func (l *lexer) MatchMinMaxBytes(match []byte, min int, max int) bool {
+	marker := l.Marker()
+	count := 0
+	for r := l.PeekRune(0); r != RuneEOF && bytes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
+		l.NextRune()
+		count++
+		if max > 0 && count >= max { // Check here to avoid unused PeekRune()
+			break
+		}
+	}
+	if count < min {
+		l.Reset(marker)
+		return false
+	}
+	return true
+}
+
+// Lexer::MatchMinMaxRunes
+func (l *lexer) MatchMinMaxRunes(match []rune, min int, max int) bool {
+	marker := l.Marker()
+	count := 0
+	for r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) >= 0; r = l.PeekRune(0) {
+		l.NextRune()
+		count++
+		if max > 0 && count >= max { // Check here to avoid unused PeekRune()
+			break
+		}
+	}
+	if count < min {
+		l.Reset(marker)
+		return false
+	}
+	return true
+}
+
+// Lexer::MatchMinMaxFunc
+func (l *lexer) MatchMinMaxFunc(match MatchFn, min int, max int) bool {
+	marker := l.Marker()
+	count := 0
+	for r := l.PeekRune(0); r != RuneEOF && match(r); r = l.PeekRune(0) {
+		l.NextRune()
+		count++
+		if max > 0 && count >= max { // Check here to avoid unused PeekRune()
+			break
+		}
+	}
+	if count < min {
+		l.Reset(marker)
+		return false
+	}
+	return true
 }
 
 // Lexer::NonMatchOneBytes
@@ -239,7 +335,16 @@ func (l *lexer) NonMatchOneBytes(match []byte) bool {
 
 // Lexer::NonMatchOneRunes
 func (l *lexer) NonMatchOneRunes(match []rune) bool {
-	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
+	if r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) == -1 {
+		l.NextRune()
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneFunc
+func (l *lexer) NonMatchOneFunc(match MatchFn) bool {
+	if r := l.PeekRune(0); r != RuneEOF && match(r) == false {
 		l.NextRune()
 		return true
 	}
@@ -262,9 +367,22 @@ func (l *lexer) NonMatchOneOrMoreBytes(match []byte) bool {
 // Lexer::NonMatchOneOrMoreRunes
 func (l *lexer) NonMatchOneOrMoreRunes(match []rune) bool {
 	var r rune
-	if r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
+	if r = l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) == -1 {
 		l.NextRune()
-		for r = l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false; r = l.PeekRune(0) {
+		for r = l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
+			l.NextRune()
+		}
+		return true
+	}
+	return false
+}
+
+// Lexer::NonMatchOneOrMoreFunc
+func (l *lexer) NonMatchOneOrMoreFunc(match MatchFn) bool {
+	var r rune
+	if r = l.PeekRune(0); r != RuneEOF && match(r) == false {
+		l.NextRune()
+		for r = l.PeekRune(0); r != RuneEOF && match(r) == false; r = l.PeekRune(0) {
 			l.NextRune()
 		}
 		return true
@@ -282,7 +400,15 @@ func (l *lexer) NonMatchZeroOrOneBytes(match []byte) bool {
 
 // Lexer::NonMatchZeroOrOneRunes
 func (l *lexer) NonMatchZeroOrOneRunes(match []rune) bool {
-	if r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false {
+	if r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) == -1 {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::NonMatchZeroOrOneFunc
+func (l *lexer) NonMatchZeroOrOneFunc(match MatchFn) bool {
+	if r := l.PeekRune(0); r != RuneEOF && match(r) == false {
 		l.NextRune()
 	}
 	return true
@@ -298,7 +424,15 @@ func (l *lexer) NonMatchZeroOrMoreBytes(match []byte) bool {
 
 // Lexer::NonMatchZeroOrMoreRunes
 func (l *lexer) NonMatchZeroOrMoreRunes(match []rune) bool {
-	for r := l.PeekRune(0); r != RuneEOF && runesContainRune(match, r) == false; r = l.PeekRune(0) {
+	for r := l.PeekRune(0); r != RuneEOF && runes.IndexRune(match, r) == -1; r = l.PeekRune(0) {
+		l.NextRune()
+	}
+	return true
+}
+
+// Lexer::NonMatchZeroOrMoreFunc
+func (l *lexer) NonMatchZeroOrMoreFunc(match MatchFn) bool {
+	for r := l.PeekRune(0); r != RuneEOF && match(r) == false; r = l.PeekRune(0) {
 		l.NextRune()
 	}
 	return true

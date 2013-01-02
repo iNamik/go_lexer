@@ -74,11 +74,17 @@ Below is the interface for the main Lexer type:
 		// MatchZeroOrOneRune consumes the next rune if it matches, always returning true
 		MatchZeroOrOneRune(rune) bool
 
+		// MatchZeroOrOneFunc consumes the next rune if it matches, always returning true
+		MatchZeroOrOneFunc(MatchFn) bool
+
 		// MatchZeroOrMoreBytes consumes a run of matching runes, always returning true
 		MatchZeroOrMoreBytes([]byte) bool
 
 		// MatchZeroOrMoreRunes consumes a run of matching runes, always returning true
 		MatchZeroOrMoreRunes([]rune) bool
+
+		// MatchZeroOrMoreFunc consumes a run of matching runes, always returning true
+		MatchZeroOrMoreFunc(MatchFn) bool
 
 		// MatchOneBytes consumes the next rune if its in the list of bytes
 		MatchOneBytes([]byte) bool
@@ -89,11 +95,26 @@ Below is the interface for the main Lexer type:
 		// MatchOneRune consumes the next rune if it matches
 		MatchOneRune(rune) bool
 
+		// MatchOneFunc consumes the next rune if it matches
+		MatchOneFunc(MatchFn) bool
+
 		// MatchOneOrMoreBytes consumes a run of matching runes
 		MatchOneOrMoreBytes([]byte) bool
 
 		// MatchOneOrMoreRunes consumes a run of matching runes
 		MatchOneOrMoreRunes([]rune) bool
+
+		// MatchOneOrMoreFunc consumes a run of matching runes
+		MatchOneOrMoreFunc(MatchFn) bool
+
+		// MatchMinMaxBytes consumes a specified run of matching runes
+		MatchMinMaxBytes([]byte, int, int) bool
+
+		// MatchMinMaxRunes consumes a specified run of matching runes
+		MatchMinMaxRunes([]rune, int, int) bool
+
+		// MatchMinMaxFunc consumes a specified run of matching runes
+		MatchMinMaxFunc(MatchFn, int, int) bool
 
 		// NonMatchZeroOrOneBytes consumes the next rune if it does not match, always returning true
 		NonMatchZeroOrOneBytes([]byte) bool
@@ -101,23 +122,35 @@ Below is the interface for the main Lexer type:
 		// NonMatchZeroOrOneRunes consumes the next rune if it does not match, always returning true
 		NonMatchZeroOrOneRunes([]rune) bool
 
+		// NonMatchZeroOrOneFunc consumes the next rune if it does not match, always returning true
+		NonMatchZeroOrOneFunc(MatchFn) bool
+
 		// NonMatchZeroOrMoreBytes consumes a run of non-matching runes, always returning true
 		NonMatchZeroOrMoreBytes([]byte) bool
 
 		// NonMatchZeroOrMoreRunes consumes a run of non-matching runes, always returning true
 		NonMatchZeroOrMoreRunes([]rune) bool
 
+		// NonMatchZeroOrMoreFunc consumes a run of non-matching runes, always returning true
+		NonMatchZeroOrMoreFunc(MatchFn) bool
+
 		// NonMatchOneBytes consumes the next rune if its NOT in the list of bytes
 		NonMatchOneBytes([]byte) bool
 
-		// NonMatchOneRunes consumes the next rune if its NOT in the list of bytes
+		// NonMatchOneRunes consumes the next rune if its NOT in the list of runes
 		NonMatchOneRunes([]rune) bool
+
+		// NonMatchOneFunc consumes the next rune if it does NOT match
+		NonMatchOneFunc(MatchFn) bool
 
 		// NonMatchOneOrMoreBytes consumes a run of non-matching runes
 		NonMatchOneOrMoreBytes([]byte) bool
 
 		// NonMatchOneOrMoreRunes consumes a run of non-matching runes
 		NonMatchOneOrMoreRunes([]rune) bool
+
+		// NonMatchOneOrMoreFunc consumes a run of non-matching runes
+		NonMatchOneOrMoreFunc(MatchFn) bool
 
 		// MatchEOF tries to match the next rune against RuneEOF
 		MatchEOF() bool
@@ -142,8 +175,9 @@ Below is a sample word count program that uses the lexer API:
 
 	// We define our lexer tokens starting from the pre-defined EOF token
 	const (
-		T_EOF   lexer.TokenType = lexer.TokenTypeEOF
-		T_SPACE                 = lexer.TokenTypeEOF + iota
+		T_EOF lexer.TokenType = lexer.TokenTypeEOF
+		T_NIL                 = lexer.TokenTypeEOF + iota
+		T_SPACE
 		T_NEWLINE
 		T_WORD
 	)
@@ -184,8 +218,10 @@ Below is a sample word count program that uses the lexer API:
 		var emptyLine bool = true
 
 		// Create our lexer
-		// New(startState, reader, readerBufLen, channelCap)
-		lex := lexer.New(lexFunc, file, 100, 1)
+		// NewSize(startState, reader, readerBufLen, channelCap)
+		lex := lexer.NewSize(lexFunc, file, 100, 1)
+
+		var lastTokenType lexer.TokenType = T_NIL
 
 		// Process lexer-emitted tokens
 		for t := lex.NextToken(); lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
@@ -194,7 +230,9 @@ Below is a sample word count program that uses the lexer API:
 
 			switch t.Type() {
 			case T_WORD:
-				words++
+				if lastTokenType != T_WORD {
+					words++
+				}
 				emptyLine = false
 
 			case T_NEWLINE:
@@ -209,6 +247,8 @@ Below is a sample word count program that uses the lexer API:
 			default:
 				panic("unreachable")
 			}
+
+			lastTokenType = t.Type()
 		}
 
 		// If last line not empty, up line count
@@ -268,9 +308,8 @@ $GOPATH variable, you can run the folloing command:
 DEPENDENCIES
 ------------
 
-go_lexer depends on the iNamik go_container queue package:
-
 * https://github.com/iNamik/go_container
+* https://github.com/iNamik/go_pkg
 
 
 AUTHORS

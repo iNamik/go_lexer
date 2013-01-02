@@ -11,8 +11,9 @@ func usage() {
 
 // We define our lexer tokens starting from the pre-defined EOF token
 const (
-	T_EOF   lexer.TokenType = lexer.TokenTypeEOF
-	T_SPACE                 = lexer.TokenTypeEOF + iota
+	T_EOF lexer.TokenType = lexer.TokenTypeEOF
+	T_NIL                 = lexer.TokenTypeEOF + iota
+	T_SPACE
 	T_NEWLINE
 	T_WORD
 )
@@ -53,8 +54,10 @@ func main() {
 	var emptyLine bool = true
 
 	// Create our lexer
-	// New(startState, reader, readerBufLen, channelCap)
-	lex := lexer.New(lexFunc, file, 100, 1)
+	// NewSize(startState, reader, readerBufLen, channelCap)
+	lex := lexer.NewSize(lexFunc, file, 100, 1)
+
+	var lastTokenType lexer.TokenType = T_NIL
 
 	// Process lexer-emitted tokens
 	for t := lex.NextToken(); lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
@@ -63,7 +66,9 @@ func main() {
 
 		switch t.Type() {
 		case T_WORD:
-			words++
+			if lastTokenType != T_WORD {
+				words++
+			}
 			emptyLine = false
 
 		case T_NEWLINE:
@@ -78,6 +83,8 @@ func main() {
 		default:
 			panic("unreachable")
 		}
+
+		lastTokenType = t.Type()
 	}
 
 	// If last line not empty, up line count

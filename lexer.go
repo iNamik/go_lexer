@@ -1,11 +1,9 @@
 package lexer
 
 import (
-	"bufio"
+	"bytes"
 	"io"
-)
-import (
-	"github.com/iNamik/go_container/queue"
+	"strings"
 )
 
 // TokenType identifies the type of lex tokens.
@@ -117,11 +115,17 @@ type Lexer interface {
 	// MatchZeroOrOneRune consumes the next rune if it matches, always returning true
 	MatchZeroOrOneRune(rune) bool
 
+	// MatchZeroOrOneFunc consumes the next rune if it matches, always returning true
+	MatchZeroOrOneFunc(MatchFn) bool
+
 	// MatchZeroOrMoreBytes consumes a run of matching runes, always returning true
 	MatchZeroOrMoreBytes([]byte) bool
 
 	// MatchZeroOrMoreRunes consumes a run of matching runes, always returning true
 	MatchZeroOrMoreRunes([]rune) bool
+
+	// MatchZeroOrMoreFunc consumes a run of matching runes, always returning true
+	MatchZeroOrMoreFunc(MatchFn) bool
 
 	// MatchOneBytes consumes the next rune if its in the list of bytes
 	MatchOneBytes([]byte) bool
@@ -132,11 +136,26 @@ type Lexer interface {
 	// MatchOneRune consumes the next rune if it matches
 	MatchOneRune(rune) bool
 
+	// MatchOneFunc consumes the next rune if it matches
+	MatchOneFunc(MatchFn) bool
+
 	// MatchOneOrMoreBytes consumes a run of matching runes
 	MatchOneOrMoreBytes([]byte) bool
 
 	// MatchOneOrMoreRunes consumes a run of matching runes
 	MatchOneOrMoreRunes([]rune) bool
+
+	// MatchOneOrMoreFunc consumes a run of matching runes
+	MatchOneOrMoreFunc(MatchFn) bool
+
+	// MatchMinMaxBytes consumes a specified run of matching runes
+	MatchMinMaxBytes([]byte, int, int) bool
+
+	// MatchMinMaxRunes consumes a specified run of matching runes
+	MatchMinMaxRunes([]rune, int, int) bool
+
+	// MatchMinMaxFunc consumes a specified run of matching runes
+	MatchMinMaxFunc(MatchFn, int, int) bool
 
 	// NonMatchZeroOrOneBytes consumes the next rune if it does not match, always returning true
 	NonMatchZeroOrOneBytes([]byte) bool
@@ -144,17 +163,26 @@ type Lexer interface {
 	// NonMatchZeroOrOneRunes consumes the next rune if it does not match, always returning true
 	NonMatchZeroOrOneRunes([]rune) bool
 
+	// NonMatchZeroOrOneFunc consumes the next rune if it does not match, always returning true
+	NonMatchZeroOrOneFunc(MatchFn) bool
+
 	// NonMatchZeroOrMoreBytes consumes a run of non-matching runes, always returning true
 	NonMatchZeroOrMoreBytes([]byte) bool
 
 	// NonMatchZeroOrMoreRunes consumes a run of non-matching runes, always returning true
 	NonMatchZeroOrMoreRunes([]rune) bool
 
+	// NonMatchZeroOrMoreFunc consumes a run of non-matching runes, always returning true
+	NonMatchZeroOrMoreFunc(MatchFn) bool
+
 	// NonMatchOneBytes consumes the next rune if its NOT in the list of bytes
 	NonMatchOneBytes([]byte) bool
 
-	// NonMatchOneRunes consumes the next rune if its NOT in the list of bytes
+	// NonMatchOneRunes consumes the next rune if its NOT in the list of runes
 	NonMatchOneRunes([]rune) bool
+
+	// NonMatchOneFunc consumes the next rune if it does NOT match
+	NonMatchOneFunc(MatchFn) bool
 
 	// NonMatchOneOrMoreBytes consumes a run of non-matching runes
 	NonMatchOneOrMoreBytes([]byte) bool
@@ -162,24 +190,29 @@ type Lexer interface {
 	// NonMatchOneOrMoreRunes consumes a run of non-matching runes
 	NonMatchOneOrMoreRunes([]rune) bool
 
+	// NonMatchOneOrMoreFunc consumes a run of non-matching runes
+	NonMatchOneOrMoreFunc(MatchFn) bool
+
 	// MatchEOF tries to match the next rune against RuneEOF
 	MatchEOF() bool
 }
 
-// New returns a new Lexer object
-func New(startState StateFn, reader io.Reader, readerBufLen int, channelCap int) Lexer {
-	r := bufio.NewReaderSize(reader, readerBufLen)
-	l := &lexer{
-		reader:   r,
-		bufLen:   readerBufLen,
-		runes:    queue.New(4), // 4 is just a nice number that seems appropriate
-		state:    startState,
-		tokens:   make(chan *Token, channelCap),
-		line:     1,
-		column:   0,
-		eofToken: nil,
-		eof:      false,
-	}
-	l.updatePeekBytes()
-	return l
+// New returns a new Lexer object with an unlimited read-buffer
+func New(startState StateFn, reader io.Reader, channelCap int) Lexer {
+	return newLexer(startState, reader, defaultBufSize, true, channelCap)
+}
+
+// NewSize returns a new Lexer object for the specified reader and read-buffer size
+func NewSize(startState StateFn, reader io.Reader, readerBufLen int, channelCap int) Lexer {
+	return newLexer(startState, reader, readerBufLen, false, channelCap)
+}
+
+// NewFromString returns a new Lexer object for the specified string
+func NewFromString(startState StateFn, input string, channelCap int) Lexer {
+	return newLexer(startState, strings.NewReader(input), len(input), false, channelCap)
+}
+
+// NewFromBytes returns a new Lexer object for the specified byte array
+func NewFromBytes(startState StateFn, input []byte, channelCap int) Lexer {
+	return newLexer(startState, bytes.NewReader(input), len(input), false, channelCap)
 }
