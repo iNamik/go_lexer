@@ -96,6 +96,17 @@ func (l *lexer) emit(t TokenType, emitBytes bool) {
 	}
 }
 
+// emitErr
+func (l *lexer) emitErr(err string) {
+	line := l.line
+
+	column := l.column - (l.tokenLen - 1)
+
+	l.consume(false)
+
+	l.tokens <- &Token{typ: T_LEX_ERR, bytes: []byte(err), line: line, column: column}
+}
+
 // consume
 func (l *lexer) consume(keepBytes bool) []byte {
 	var b []byte

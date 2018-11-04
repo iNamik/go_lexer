@@ -100,6 +100,9 @@ type Lexer interface {
 	// EmitEOF emits a token of type TokenEOF
 	EmitEOF()
 
+	// Emits token of type T_LEX_ERR with string as the token bytes
+	EmitError(string)
+
 	// NextToken retrieves the next emmitted token from the input
 	NextToken() *Token
 
