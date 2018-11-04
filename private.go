@@ -77,12 +77,12 @@ func (l *lexer) ensureRuneLen(n int) bool {
 
 // emit
 func (l *lexer) emit(t TokenType, emitBytes bool) {
-	if TokenTypeEOF == t {
+	if T_EOF == t {
 		if l.eof {
 			panic("illegal state: EmitEOF() already called")
 		}
 		l.consume(false)
-		l.eofToken = &Token{typ: TokenTypeEOF, bytes: nil, line: l.line, column: l.column + 1}
+		l.eofToken = &Token{typ: T_EOF, bytes: nil, line: l.line, column: l.column + 1}
 		l.eof = true
 		l.tokens <- l.eofToken
 	} else {

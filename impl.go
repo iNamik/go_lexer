@@ -107,7 +107,7 @@ func (l *lexer) EmitTokenWithBytes(t TokenType) {
 
 // Lexer::EmitToken
 func (l *lexer) EmitEOF() {
-	l.emit(TokenTypeEOF, false)
+	l.emit(T_EOF, false)
 }
 
 // Lexer::IgnoreToken

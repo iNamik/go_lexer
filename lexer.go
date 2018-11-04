@@ -23,8 +23,8 @@ func (t *Token) Type() TokenType { return t.typ }
 // Bytes returns the byte array associated with the token, or nil if none
 func (t *Token) Bytes() []byte { return t.bytes }
 
-// EOF returns true if the TokenType == TokenTypeEOF
-func (t *Token) EOF() bool { return TokenTypeEOF == t.typ }
+// EOF returns true if the TokenType == T_EOF
+func (t *Token) EOF() bool { return T_EOF == t.typ }
 
 // Line returns the line number of the token
 func (t *Token) Line() int { return t.line }
@@ -32,11 +32,14 @@ func (t *Token) Line() int { return t.line }
 // Column returns the column number of the token
 func (t *Token) Column() int { return t.column }
 
-// TokenType representing EOF
-const TokenTypeEOF TokenType = -1
+// TokenType representing Lexer Error
+const T_LEX_ERR TokenType = -2
 
 // TokenType representing an unknown rune(s)
-const TokenTypeUnknown TokenType = -2
+const T_UNKNOWN TokenType = -1
+
+// TokenType representing EOF
+const T_EOF TokenType = 0
 
 // Rune represending EOF
 const RuneEOF = -1

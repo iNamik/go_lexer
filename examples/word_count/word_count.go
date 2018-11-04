@@ -11,8 +11,8 @@ func usage() {
 
 // We define our lexer tokens starting from the pre-defined EOF token
 const (
-	T_EOF lexer.TokenType = lexer.TokenTypeEOF
-	T_NIL                 = lexer.TokenTypeEOF + iota
+	T_EOF lexer.TokenType = lexer.T_EOF
+	T_NIL                 = lexer.T_EOF + iota
 	T_SPACE
 	T_NEWLINE
 	T_WORD
@@ -60,7 +60,7 @@ func main() {
 	var lastTokenType lexer.TokenType = T_NIL
 
 	// Process lexer-emitted tokens
-	for t := lex.NextToken(); lexer.TokenTypeEOF != t.Type(); t = lex.NextToken() {
+	for t := lex.NextToken(); lexer.T_EOF != t.Type(); t = lex.NextToken() {
 
 		chars += len(t.Bytes())
 
