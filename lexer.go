@@ -84,6 +84,9 @@ type Lexer interface {
 	// Column returns the current column number, 1-based
 	Column() int
 
+	// PeekTokenBytes allows you to inspect the currently matched byte sequence
+	PeekTokenBytes() []byte
+
 	// EmitToken emits a token of the specified type, consuming matched runes
 	// without emitting them
 	EmitToken(TokenType)

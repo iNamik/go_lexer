@@ -95,6 +95,12 @@ func (l *lexer) BackupRunes(n int) {
 	}
 }
 
+// Lexer::PeekTokenBytes
+func (l *lexer) PeekTokenBytes() []byte {
+	return l.peekBytes[0:l.tokenLen]
+}
+
+
 // Lexer::EmitToken
 func (l *lexer) EmitToken(t TokenType) {
 	l.emit(t, false)
