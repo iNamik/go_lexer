@@ -117,7 +117,7 @@ func (l *lexer) EmitEOF() {
 }
 
 func (l *lexer) EmitError(err string) {
-	l.emitErr(string)
+	l.emitErr(err)
 }
 
 // Lexer::IgnoreToken
